@@ -1,0 +1,11 @@
+const express = require('express');
+const Customer = require('../models/Customer');
+const Order = require('../models/Order');
+const router = express.Router();
+router.get('/', async (_req, res, next) => { try { res.json(await Customer.find().sort({ createdAt: -1 })); } catch (e) { next(e); } });
+router.get('/:id', async (req, res, next) => { try { const item = await Customer.findById(req.params.id); if (!item) return res.status(404).json({ message: 'Customer not found.' }); res.json(item); } catch (e) { next(e); } });
+router.post('/', async (req, res, next) => { try { const item = await Customer.create(req.body); res.status(201).json(item); } catch (e) { next(e); } });
+router.put('/:id', async (req, res, next) => { try { const item = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true }); if (!item) return res.status(404).json({ message: 'Customer not found.' }); res.json(item); } catch (e) { next(e); } });
+router.delete('/:id', async (req, res, next) => { try { if (await Order.exists({ customer: req.params.id })) return res.status(409).json({ message: 'Customer has orders and cannot be deleted.' }); const item = await Customer.findByIdAndDelete(req.params.id); if (!item) return res.status(404).json({ message: 'Customer not found.' }); res.json({ message: 'Customer deleted.' }); } catch (e) { next(e); } });
+router.post('/bulk/import', async (req, res, next) => { try { if (!Array.isArray(req.body.rows)) return res.status(400).json({ message: 'rows must be an array.' }); const result = await Customer.insertMany(req.body.rows, { ordered: false }); res.status(201).json({ imported: result.length }); } catch (e) { next(e); } });
+module.exports = router;
